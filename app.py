@@ -27,15 +27,15 @@ from email import encoders
 import streamlit as st
 
 # Fix for Python 3.13+ audioop compatibility
-import sys
-if not hasattr(sys, 'audioop_patched'):
+_audioop_patched = False
+if not _audioop_patched:
     try:
         import audioop
     except ImportError:
         # Patch audioop before importing pydub
         import audioop_compat
         sys.modules['audioop'] = audioop_compat
-        sys.audioop_patched = True
+        _audioop_patched = True
 
 from pydub import AudioSegment
 import yt_dlp
