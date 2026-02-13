@@ -2,4 +2,3 @@ streamlit
 yt-dlp
 pydub
 python-dotenv
-pyaudioop
