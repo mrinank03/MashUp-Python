@@ -1,55 +1,185 @@
-# YouTube Mashup Generator — 102303235
+# 🎵 YouTube Mashup Generator
 
-A Python-based YouTube mashup tool that downloads songs of a given singer, trims them, and merges the clips into a single MP3 file.
+**Roll Number:** 102303235 | **Author:** Mrinank Jit Singh
 
-## Programs
+Transform your favorite artist's songs into seamless mashups! This Python application automatically downloads, processes, and combines YouTube music tracks into a single MP3 file.
 
-| # | File | Description |
-|---|------|-------------|
-| 1 | `102303235.py` | Command-line mashup tool |
-| 2 | `app.py` | Streamlit web application with email delivery |
+![YouTube Mashup Generator Interface](image.png)
+*Web interface showing the mashup creation process*
 
-## Prerequisites
+## ✨ Features
 
-- **Python 3.8+**
-- **ffmpeg** installed and available on `PATH`
-  - macOS: `brew install ffmpeg`
-  - Linux: `sudo apt-get install ffmpeg`
-  - Windows: `choco install ffmpeg`
+- 🎯 **Smart Search**: Automatically finds YouTube videos for any artist
+- ✂️ **Intelligent Trimming**: Extracts the best parts of each song
+- 🔄 **Seamless Merging**: Creates smooth transitions between tracks  
+- 📧 **Email Delivery**: Sends completed mashups directly to your inbox
+- 🖥️ **Dual Interface**: Both web app and command-line versions
+- ⚡ **Fast Processing**: Optimized download and audio processing
 
-## Setup
+## 🚀 Demo
 
-```bash
-# 1. Create & activate a virtual environment
-python -m venv venv
-source venv/bin/activate   # Mac/Linux
-# venv\Scripts\activate    # Windows
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Configure email (for the Streamlit app)
-#    Edit .env with your Gmail address and App Password
-```
-
-## Usage
-
-### Program 1 — CLI
-
-```bash
-python 102303235.py "<SingerName>" <NumberOfVideos> <AudioDuration> <OutputFile.mp3>
-# Example:
-python 102303235.py "Sharry Maan" 20 20 102303235-output.mp3
-```
-
-### Program 2 — Streamlit Web App
-
+### Web Application
+Launch the interactive Streamlit interface:
 ```bash
 streamlit run app.py
 ```
 
-Open the URL printed in the terminal, fill in the form, and hit **Create Mashup**.
+### Command Line
+Quick mashup generation:
+```bash
+python 102303235.py "Arijit Singh" 10 20 my-mashup.mp3
+```
 
-## Author
+## 🛠️ Tech Stack
 
-**Mrinank Jit Singh** — Roll No. 102303235
+| Component | Technology |
+|-----------|-----------|
+| **Backend** | Python 3.8+ |
+| **Web Framework** | Streamlit |
+| **Audio Processing** | PyDub + FFmpeg |
+| **YouTube Integration** | yt-dlp |
+| **Email Service** | SMTP (Gmail) |
+
+## 📋 Prerequisites
+
+### Required Software
+- **Python 3.8+** 
+- **FFmpeg** (for audio processing)
+
+### FFmpeg Installation
+```bash
+# macOS
+brew install ffmpeg
+
+# Ubuntu/Debian
+sudo apt update && sudo apt install ffmpeg
+
+# Windows (with Chocolatey)
+choco install ffmpeg
+```
+
+## ⚙️ Setup & Installation
+
+### 1. Clone Repository
+```bash
+git clone https://github.com/mrinank03/MashUp-Python.git
+cd MashUp-Python
+```
+
+### 2. Create Virtual Environment
+```bash
+python -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate        # macOS/Linux
+# OR
+venv\Scripts\activate          # Windows
+```
+
+### 3. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Configure Environment (Optional)
+For email functionality, create a `.env` file:
+```env
+EMAIL_ADDRESS=your-email@gmail.com
+EMAIL_PASSWORD=your-app-password
+```
+
+> **Note:** Use Gmail App Passwords, not your regular password
+
+## 📱 Usage Guide
+
+### 🌐 Web Application
+
+1. **Start the server:**
+   ```bash
+   streamlit run app.py
+   ```
+
+2. **Open your browser** to the displayed URL (typically `http://localhost:8501`)
+
+3. **Fill in the form:**
+   - Enter artist/singer name
+   - Set number of videos (5-20)
+   - Choose clip duration (20-60 seconds)
+   - Provide your email address
+
+4. **Click "Create Mashup"** and wait for processing
+
+5. **Check your email** for the completed mashup!
+
+### 💻 Command Line Interface
+
+```bash
+python 102303235.py "<Artist>" <Videos> <Duration> <Output>
+```
+
+**Parameters:**
+- `<Artist>`: Singer or artist name (in quotes)
+- `<Videos>`: Number of videos to download (integer)
+- `<Duration>`: Seconds per clip (integer) 
+- `<Output>`: Output filename (must end with .mp3)
+
+**Examples:**
+```bash
+# Generate 20-second clips from 15 Arijit Singh songs
+python 102303235.py "Arijit Singh" 15 20 arijit-mashup.mp3
+
+# Create a 30-second mashup from 8 AR Rahman tracks  
+python 102303235.py "AR Rahman" 8 30 rahman-mix.mp3
+```
+
+## 📁 Project Structure
+
+```
+YouTube-Mashup-Generator/
+├── 📄 app.py                 # Streamlit web application
+├── 📄 102303235.py          # Command-line tool
+├── 📄 requirements.txt      # Python dependencies
+├── 📄 .gitignore           # Git exclusions
+├── 📄 .env                 # Environment variables (create this)
+└── 📄 README.md            # This file
+```
+
+## 🔧 How It Works
+
+1. **Search**: Queries YouTube for artist's songs using yt-dlp
+2. **Download**: Fetches audio tracks with multiple fallback formats
+3. **Process**: Extracts specified duration from each track's beginning
+4. **Merge**: Combines all clips into a seamless mashup
+5. **Deliver**: Packages as MP3 and sends via email (web app)
+
+## ⚠️ Important Notes
+
+- **Copyright**: This tool is for educational purposes only
+- **Rate Limits**: Includes delays to respect YouTube's policies  
+- **Dependencies**: Requires stable internet connection
+- **File Size**: Large mashups may take time to email
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**FFmpeg not found:**
+```bash
+# Verify installation
+ffmpeg -version
+
+# Add to PATH if needed (Windows)
+set PATH=%PATH%;C:\path\to\ffmpeg\bin
+```
+
+**Download failures:**
+- Check internet connection
+- Try different artist names
+- Reduce number of videos
+
+**Email not working:**
+- Verify Gmail App Password
+- Check .env file configuration
+- Ensure less secure app access is enabled
+
+
