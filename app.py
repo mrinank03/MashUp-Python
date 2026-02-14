@@ -311,6 +311,7 @@ def main():
                 status.info("⬇️ Downloading audio…")
                 audio_paths: List[str] = []
                 downloaded_count = 0
+                consecutive_failures = 0
                 max_downloads = min(len(urls), 8)  # Limit attempts
                 
                 for i, url in enumerate(urls[:max_downloads], 1):
@@ -323,6 +324,7 @@ def main():
                     if path:
                         audio_paths.append(path)
                         downloaded_count += 1
+                        consecutive_failures = 0  # Reset failure counter
                         logger.info(f"✅ Downloaded {downloaded_count}: {os.path.basename(path)}")
                         
                         # Early success exit
@@ -330,34 +332,44 @@ def main():
                             logger.info(f"Got {downloaded_count} downloads, sufficient!")
                             break
                     else:
+                        consecutive_failures += 1
                         logger.warning(f"❌ Failed to download video {i}")
-
-                # Check results
-                if not audio_paths:
-                    if FALLBACK_MODE:
-                        st.warning("❌ Downloads failed, creating working demo instead")
-                        combined = create_working_demo()
-                        progress.progress(80, text="Creating demo mashup...")
-                    else:
-                        st.error("❌ **Unable to download any audio files.**")
-                        st.error("Add `FALLBACK_MODE=true` to .env for working demo")
-                        return
-                else:
-                    if len(audio_paths) < max_downloads:
-                        st.warning(f"⚠️ Downloaded {len(audio_paths)}/{max_downloads} videos. Proceeding.")
                         
-                    progress.progress(70, text=f"Downloaded {len(audio_paths)} tracks")
-
-                    # Step 3 – Cut & merge
-                    status.info("✂️ Cutting & merging clips…")
-                    progress.progress(75, text="Merging audio clips…")
-                    combined = cut_and_merge(audio_paths, int(duration))
-                    if len(combined) == 0:
-                        if FALLBACK_MODE:
+                        # Early fallback if YouTube is blocking aggressively
+                        if FALLBACK_MODE and consecutive_failures >= 3:
+                            logger.warning("🚫 Detected aggressive YouTube blocking, switching to fallback mode")
+                            st.warning("🚫 YouTube is blocking downloads, creating working demo instead")
                             combined = create_working_demo()
+                            progress.progress(80, text="Creating demo mashup...")
+                            break
+
+                # Check results (skip if demo already created due to blocking)
+                if 'combined' not in locals():
+                    if not audio_paths:
+                        if FALLBACK_MODE:
+                            st.warning("❌ Downloads failed, creating working demo instead")
+                            combined = create_working_demo()
+                            progress.progress(80, text="Creating demo mashup...")
                         else:
-                            st.error("No audio could be processed.")
+                            st.error("❌ **Unable to download any audio files.**")
+                            st.error("Add `FALLBACK_MODE=true` to .env for working demo")
                             return
+                    else:
+                        if len(audio_paths) < max_downloads:
+                            st.warning(f"⚠️ Downloaded {len(audio_paths)}/{max_downloads} videos. Proceeding.")
+                            
+                        progress.progress(70, text=f"Downloaded {len(audio_paths)} tracks")
+
+                        # Step 3 – Cut & merge
+                        status.info("✂️ Cutting & merging clips…")
+                        progress.progress(75, text="Merging audio clips…")
+                        combined = cut_and_merge(audio_paths, int(duration))
+                        if len(combined) == 0:
+                            if FALLBACK_MODE:
+                                combined = create_working_demo()
+                            else:
+                                st.error("No audio could be processed.")
+                                return
             
             progress.progress(85, text="Creating ZIP…")
 
