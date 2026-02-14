@@ -290,6 +290,7 @@ def main():
         temp_dir = tempfile.mkdtemp(prefix="mashup_")
         progress = st.progress(0, text="Starting…")
         status = st.empty()
+        combined = None  # Initialize combined variable
 
         try:
             # Step 1 – Search
@@ -344,7 +345,7 @@ def main():
                             break
 
                 # Check results (skip if demo already created due to blocking)
-                if 'combined' not in locals():
+                if combined is None:
                     if not audio_paths:
                         if FALLBACK_MODE:
                             st.warning("❌ Downloads failed, creating working demo instead")
