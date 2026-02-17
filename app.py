@@ -137,13 +137,11 @@ def download_audio(url: str, index: int, temp_dir: str) -> Optional[str]:
     """Download audio from YouTube URL and return the file path."""
     out_template = os.path.join(temp_dir, f"audio_{index}.%(ext)s")
     
-    # Enhanced format selection with better success rate
+    # More flexible format selection to avoid "format not available" errors
     format_options = [
-        "bestaudio[ext=m4a]",
-        "bestaudio[ext=webm]",
-        "bestaudio",
-        "best[height<=360]",
-        "worst",
+        "bestaudio/best",
+        "worstaudio/worst",
+        "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best",
     ]
     
     for format_sel in format_options:
@@ -153,8 +151,8 @@ def download_audio(url: str, index: int, temp_dir: str) -> Optional[str]:
             "quiet": True,
             "no_warnings": True,
             "user_agent": random.choice(USER_AGENTS),
-            "extractor_retries": 3,
-            "fragment_retries": 3, 
+            "extractor_retries": 5,
+            "fragment_retries": 5, 
             "socket_timeout": 30,
             "sleep_interval": 2,
             "max_sleep_interval": 6,
@@ -162,6 +160,9 @@ def download_audio(url: str, index: int, temp_dir: str) -> Optional[str]:
             "ignoreerrors": False,
             "no_color": True,
             "extract_flat": False,
+            "age_limit": None,
+            "geo_bypass": True,
+            "source_address": "0.0.0.0",
             "http_headers": {
                 "User-Agent": random.choice(USER_AGENTS),
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -170,9 +171,9 @@ def download_audio(url: str, index: int, temp_dir: str) -> Optional[str]:
             },
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["android", "web"],
-                    "player_skip": ["webpage", "configs"],
-                    "max_comments": ["0"],
+                    "player_client": ["android", "ios", "web"],
+                    "player_skip": ["webpage"],
+                    "skip": ["hls", "dash"],
                 }
             },
             "postprocessors": [
