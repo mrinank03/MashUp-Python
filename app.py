@@ -65,34 +65,24 @@ USER_AGENTS = [
 # Core Functions
 
 def create_working_demo() -> AudioSegment:
-    """Create a working demo with actual audio content."""
-    logger.info("Creating working demo mashup...")
+    """Load the default.mp3 file to use as fallback."""
+    logger.info("Loading default mashup file...")
     
-    # Create a simple but realistic demo
-    # Generate 3 segments of different tones (simulating different songs)
-    segments = []
-    
-    for i in range(3):
-        # Create a 20-second segment of silence (base)
-        segment = AudioSegment.silent(duration=20000)
-        
-        # Add very subtle audio markers to make it feel real
-        # This creates the structure of a real mashup
-        if i == 0:
-            # First "song" - slightly different from pure silence
-            segment = segment + 5  # Slightly louder
-        elif i == 1:
-            # Second "song" 
-            segment = segment - 3  # Slightly quieter
-        # Third song stays normal
-        
-        segments.append(segment)
-    
-    # Combine all segments
-    demo_mashup = segments[0] + segments[1] + segments[2]
-    
-    logger.info(f"Working demo created: {len(demo_mashup)}ms ({len(segments)} tracks)")
-    return demo_mashup
+    try:
+        # Try to load the default.mp3 file from the project root
+        default_path = os.path.join(os.path.dirname(__file__), "default.mp3")
+        if os.path.exists(default_path):
+            demo_mashup = AudioSegment.from_file(default_path)
+            logger.info(f"Loaded default.mp3: {len(demo_mashup)}ms")
+            return demo_mashup
+        else:
+            logger.warning("default.mp3 not found, creating silent demo")
+            # Fallback to silent audio if default.mp3 doesn't exist
+            return AudioSegment.silent(duration=60000)  # 60 seconds of silence
+    except Exception as e:
+        logger.error(f"Error loading default.mp3: {e}")
+        # Fallback to silent audio if there's an error
+        return AudioSegment.silent(duration=60000)
 
 
 def search_youtube(singer_name: str, num_videos: int) -> List[str]:
@@ -327,9 +317,9 @@ def main():
             urls = search_youtube(singer_name.strip(), int(num_videos))
             if not urls:
                 if FALLBACK_MODE:
-                    st.warning(f"Search failed for '{singer_name}', using fallback demo")
+                    st.warning(f"Search failed for '{singer_name}', using default mashup file")
                     combined = create_working_demo()
-                    progress.progress(85, text="Creating demo ZIP...")
+                    progress.progress(85, text="Using default mashup file...")
                 else:
                     st.error(f"No videos found for '{singer_name}'. Try a different artist name.")
                     return
@@ -366,19 +356,19 @@ def main():
                         
                         # Early fallback if YouTube is blocking aggressively
                         if FALLBACK_MODE and consecutive_failures >= 3:
-                            logger.warning("🚫 Detected aggressive YouTube blocking, switching to fallback mode")
-                            st.warning("🚫 YouTube is blocking downloads, creating working demo instead")
+                            logger.warning("🚫 YouTube requires authentication (bot detection), switching to default file")
+                            st.warning("🤖 YouTube detected automated access. Using default mashup file instead.")
                             combined = create_working_demo()
-                            progress.progress(80, text="Creating demo mashup...")
+                            progress.progress(80, text="Using default mashup file...")
                             break
 
                 # Check results (skip if demo already created due to blocking)
                 if combined is None:
                     if not audio_paths:
                         if FALLBACK_MODE:
-                            st.warning("❌ Downloads failed, creating working demo instead")
+                            st.warning("❌ Downloads failed, using default mashup file instead")
                             combined = create_working_demo()
-                            progress.progress(80, text="Creating demo mashup...")
+                            progress.progress(80, text="Using default mashup file...")
                         else:
                             st.error("❌ **Unable to download any audio files.**")
                             st.error("Add `FALLBACK_MODE=true` to .env for working demo")

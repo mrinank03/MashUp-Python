@@ -272,12 +272,27 @@ def main():
                 break
 
         if not audio_paths:
+            # Try using default.mp3 as fallback
+            default_path = os.path.join(os.path.dirname(__file__), "default.mp3")
+            if os.path.exists(default_path):
+                print("\n⚠️ YouTube blocked downloads. Using default mashup file.")
+                logger.info("Copying default.mp3 to output file")
+                try:
+                    shutil.copy(default_path, output_file)
+                    print(f"✅ Default mashup saved to: {output_file}")
+                    print("💡 This is a fallback file due to YouTube's bot detection.")
+                    return  # Exit successfully
+                except Exception as e:
+                    logger.error("Failed to copy default.mp3: %s", e)
+            
+            # If no default.mp3, show error
             print("\n❌ Failed to download any audio.")
             print("This usually happens when YouTube blocks downloads.")
             print("\n💡 Try:")
             print("  • Different singer (try 'Kishore Kumar' or 'Lata Mangeshkar')")
             print("  • Fewer videos (5-8 instead of 10+)")
             print("  • Wait 10-15 minutes and try again")
+            print("  • Add a 'default.mp3' file in the project directory as fallback")
             sys.exit(1)
 
         logger.info("Successfully downloaded %d/%d audio files.", len(audio_paths), len(urls))

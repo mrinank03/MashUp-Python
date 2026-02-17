@@ -25,8 +25,9 @@ wheels/
 .env
 .venv
 
-# Audio/Video files
+# Audio/Video files (except default.mp3 which is needed for fallback)
 *.mp3
+!default.mp3
 *.mp4
 *.webm
 *.wav
