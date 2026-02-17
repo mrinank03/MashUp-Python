@@ -19,6 +19,10 @@ import logging
 from typing import List, Dict, Any, Optional
 from pydub import AudioSegment
 import yt_dlp
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Logging configuration
 logging.basicConfig(
@@ -30,6 +34,11 @@ logging.getLogger('yt_dlp').setLevel(logging.ERROR)
 logger = logging.getLogger(__name__)
 
 TEMP_DIR = "temp_audio"
+
+# YouTube bot bypass configuration (optional)
+YT_PO_TOKEN = os.getenv("YT_PO_TOKEN", "")  # YouTube Proof of Origin token
+YT_VISITOR_DATA = os.getenv("YT_VISITOR_DATA", "")  # YouTube visitor data
+YT_COOKIES_FILE = os.getenv("YT_COOKIES_FILE", "")  # Path to cookies.txt file
 
 # User agents for requests - Updated for better YouTube compatibility
 USER_AGENTS = [
@@ -101,6 +110,22 @@ def search_videos(singer_name, num_videos):
             "Sec-Fetch-Mode": "navigate",
         },
     }
+    
+    # Add YouTube bot bypass if configured
+    if YT_PO_TOKEN and YT_VISITOR_DATA:
+        ydl_opts["extractor_args"] = {
+            "youtube": {
+                "po_token": YT_PO_TOKEN,
+                "visitor_data": YT_VISITOR_DATA,
+            }
+        }
+        logger.info("✅ Using po_token for YouTube authentication")
+    
+    # Add cookies file if configured
+    if YT_COOKIES_FILE and os.path.exists(YT_COOKIES_FILE):
+        ydl_opts["cookiefile"] = YT_COOKIES_FILE
+        logger.info(f"✅ Using cookies from: {YT_COOKIES_FILE}")
+    
     search_query = f"ytsearch{num_videos}:{query}"
 
     try:
@@ -162,21 +187,34 @@ def download_audio(url, index):
                 "Accept-Language": "en-us,en;q=0.5",
                 "Sec-Fetch-Mode": "navigate",
             },
-            "extractor_args": {
-                "youtube": {
-                    "player_client": ["android", "ios", "web"],
-                    "player_skip": ["webpage"],
-                    "skip": ["hls", "dash"],
-                }
-            },
-            "postprocessors": [
-                {
-                    "key": "FFmpegExtractAudio",
-                    "preferredcodec": "mp3",
-                    "preferredquality": "192",
-                }
-            ],
         }
+        
+        # Build extractor_args for YouTube
+        youtube_args = {
+            "player_client": ["android", "ios", "web"],
+            "player_skip": ["webpage"],
+            "skip": ["hls", "dash"],
+        }
+        
+        # Add po_token and visitor_data if available (bypasses bot detection)
+        if YT_PO_TOKEN and YT_VISITOR_DATA:
+            youtube_args["po_token"] = YT_PO_TOKEN  # type: ignore
+            youtube_args["visitor_data"] = YT_VISITOR_DATA  # type: ignore
+        
+        ydl_opts["extractor_args"] = {"youtube": youtube_args}
+        
+        # Add cookies file if configured
+        if YT_COOKIES_FILE and os.path.exists(YT_COOKIES_FILE):
+            ydl_opts["cookiefile"] = YT_COOKIES_FILE
+        
+        # Add postprocessor for audio extraction
+        ydl_opts["postprocessors"] = [
+            {
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "192",
+            }
+        ]
 
         try:
             # Add random delay
