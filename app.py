@@ -53,12 +53,12 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logging.getLogger('yt_dlp').setLevel(logging.ERROR)
 logger = logging.getLogger(__name__)
 
-# User agents for requests
+# User agents for requests - Updated for better YouTube compatibility
 USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
 ]
 
 
@@ -104,10 +104,16 @@ def search_youtube(singer_name: str, num_videos: int) -> List[str]:
         "extract_flat": True,
         "default_search": "ytsearch",
         "user_agent": random.choice(USER_AGENTS),
-        "extractor_retries": 2,
-        "socket_timeout": 20,
-        "sleep_interval": 1,
-        "max_sleep_interval": 3,
+        "extractor_retries": 3,
+        "socket_timeout": 30,
+        "sleep_interval": 2,
+        "max_sleep_interval": 5,
+        "http_headers": {
+            "User-Agent": random.choice(USER_AGENTS),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+        },
     }
     
     try:
@@ -131,12 +137,13 @@ def download_audio(url: str, index: int, temp_dir: str) -> Optional[str]:
     """Download audio from YouTube URL and return the file path."""
     out_template = os.path.join(temp_dir, f"audio_{index}.%(ext)s")
     
-    # Optimized format selection for better success with new Python version
+    # Enhanced format selection with better success rate
     format_options = [
-        "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio",
-        "bestaudio[filesize<50M]/bestaudio", 
-        "worst[height<=480]/worst",
-        "18",  # Common YouTube format
+        "bestaudio[ext=m4a]",
+        "bestaudio[ext=webm]",
+        "bestaudio",
+        "best[height<=360]",
+        "worst",
     ]
     
     for format_sel in format_options:
@@ -146,11 +153,28 @@ def download_audio(url: str, index: int, temp_dir: str) -> Optional[str]:
             "quiet": True,
             "no_warnings": True,
             "user_agent": random.choice(USER_AGENTS),
-            "extractor_retries": 2,
-            "fragment_retries": 2, 
-            "socket_timeout": 15,
-            "sleep_interval": 1,
-            "max_sleep_interval": 3,
+            "extractor_retries": 3,
+            "fragment_retries": 3, 
+            "socket_timeout": 30,
+            "sleep_interval": 2,
+            "max_sleep_interval": 6,
+            "nocheckcertificate": True,
+            "ignoreerrors": False,
+            "no_color": True,
+            "extract_flat": False,
+            "http_headers": {
+                "User-Agent": random.choice(USER_AGENTS),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-us,en;q=0.5",
+                "Sec-Fetch-Mode": "navigate",
+            },
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["android", "web"],
+                    "player_skip": ["webpage", "configs"],
+                    "max_comments": ["0"],
+                }
+            },
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",
@@ -162,26 +186,29 @@ def download_audio(url: str, index: int, temp_dir: str) -> Optional[str]:
         
         try:
             # Add random delay to avoid rate limiting
-            time.sleep(random.uniform(1, 3))
+            time.sleep(random.uniform(2, 5))
             
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:  # type: ignore
-                ydl.download([url])
+                info = ydl.extract_info(url, download=True)
             
             # Look for downloaded file
             expected = os.path.join(temp_dir, f"audio_{index}.mp3")
             if os.path.exists(expected):
+                logger.info(f"✅ Successfully downloaded with format: {format_sel}")
                 return expected
 
             # Check for any file that starts with the audio prefix
             try:
                 for fname in os.listdir(temp_dir):
                     if fname.startswith(f"audio_{index}.") and not fname.endswith(".part"):
+                        logger.info(f"✅ Successfully downloaded: {fname}")
                         return os.path.join(temp_dir, fname)
             except OSError:
                 continue
                 
         except Exception as exc:
             logger.debug(f"Format '{format_sel}' failed for {url}: {exc}")
+            time.sleep(2)  # Wait before trying next format
             continue  # Try next format
     
     # All methods failed

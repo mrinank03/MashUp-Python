@@ -31,11 +31,12 @@ logger = logging.getLogger(__name__)
 
 TEMP_DIR = "temp_audio"
 
-# User agents for requests
+# User agents for requests - Updated for better YouTube compatibility
 USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
 ]
 
 
@@ -89,10 +90,16 @@ def search_videos(singer_name, num_videos):
         "extract_flat": True,
         "default_search": "ytsearch",
         "user_agent": random.choice(USER_AGENTS),
-        "extractor_retries": 2,
-        "socket_timeout": 20,
-        "sleep_interval": 1,
-        "max_sleep_interval": 3,
+        "extractor_retries": 3,
+        "socket_timeout": 30,
+        "sleep_interval": 2,
+        "max_sleep_interval": 5,
+        "http_headers": {
+            "User-Agent": random.choice(USER_AGENTS),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+        },
     }
     search_query = f"ytsearch{num_videos}:{query}"
 
@@ -123,12 +130,13 @@ def download_audio(url, index):
     """Download audio from YouTube URL."""
     output_template = os.path.join(TEMP_DIR, f"audio_{index}.%(ext)s")
     
-    # Optimized format options for better success
+    # Enhanced format selection with better success rate
     format_options = [
-        "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio",
-        "bestaudio[filesize<50M]/bestaudio",
-        "worst[ext=m4a]/worst[ext=mp4]/worst",
-        "18",  # Common YouTube format
+        "bestaudio[ext=m4a]",
+        "bestaudio[ext=webm]",
+        "bestaudio",
+        "best[height<=360]",
+        "worst",
     ]
     
     for format_sel in format_options:
@@ -138,11 +146,28 @@ def download_audio(url, index):
             "quiet": True,
             "no_warnings": True,
             "user_agent": random.choice(USER_AGENTS),
-            "extractor_retries": 2,
-            "fragment_retries": 2,
-            "socket_timeout": 15,
-            "sleep_interval": 1,
-            "max_sleep_interval": 3,
+            "extractor_retries": 3,
+            "fragment_retries": 3,
+            "socket_timeout": 30,
+            "sleep_interval": 2,
+            "max_sleep_interval": 6,
+            "nocheckcertificate": True,
+            "ignoreerrors": False,
+            "no_color": True,
+            "extract_flat": False,
+            "http_headers": {
+                "User-Agent": random.choice(USER_AGENTS),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-us,en;q=0.5",
+                "Sec-Fetch-Mode": "navigate",
+            },
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["android", "web"],
+                    "player_skip": ["webpage", "configs"],
+                    "max_comments": ["0"],
+                }
+            },
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",
@@ -154,23 +179,26 @@ def download_audio(url, index):
 
         try:
             # Add random delay
-            time.sleep(random.uniform(1, 3))
+            time.sleep(random.uniform(2, 5))
             
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:  # type: ignore
-                ydl.download([url])
+                info = ydl.extract_info(url, download=True)
             
             # Check if download succeeded
             expected_path = os.path.join(TEMP_DIR, f"audio_{index}.mp3")
             if os.path.exists(expected_path):
+                logger.info(f"✅ Successfully downloaded with format: {format_sel}")
                 return expected_path
 
             # Check for any variant of the downloaded file
             for fname in os.listdir(TEMP_DIR):
                 if fname.startswith(f"audio_{index}.") and not fname.endswith(".part"):
+                    logger.info(f"✅ Successfully downloaded: {fname}")
                     return os.path.join(TEMP_DIR, fname)
                     
         except Exception as exc:
             logger.debug(f"Format '{format_sel}' failed: {exc}")
+            time.sleep(2)  # Wait before trying next format
             continue
     
     # All formats failed
